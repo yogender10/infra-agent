@@ -1,0 +1,23 @@
+{
+  "key": "DATA-418",
+  "summary": "Migrate event ingestion pipeline from Kafka to Kinesis Firehose with Iceberg table format",
+  "issuetype": "Story",
+  "status": "In Progress",
+  "priority": "High",
+  "story_points": 13,
+  "labels": ["data-platform", "infrastructure", "q2-initiative"],
+  "components": ["Event Pipeline", "Data Lake"],
+  "epic": "DATA-Q2-Platform-Modernisation",
+  "description": "We need to migrate our existing Kafka-based event ingestion pipeline to Kinesis Firehose. The current Kafka cluster on EC2 is self-managed and consumes significant SRE time (~8h/week). Additionally, we will switch from Parquet/Hive table format to Apache Iceberg on S3 to unlock schema evolution and time-travel queries.\n\nCurrent state:\n- 3 Kafka brokers on m5.2xlarge EC2 instances\n- ~50M events/day, average latency p99 ~800ms end-to-end\n- Manual schema management, schema changes require coordinator approval and 2-week lead time\n- No row-level deletes (GDPR deletion requests take 4-6 weeks via full partition rewrite)\n\nTarget state:\n- Kinesis Firehose with auto-scaling\n- Iceberg tables with schema evolution enabled\n- GDPR deletes handled via Iceberg row-level deletes (estimated < 1 hour)\n- p99 latency target: < 500ms",
+  "acceptance_criteria": "1. All existing event producers emit to new Kinesis stream without code changes (Kafka-compatible SDK shim or cutover)\n2. Iceberg tables queryable from Athena and Spark with existing SQL — no breaking schema changes\n3. GDPR delete job runs successfully end-to-end on test dataset\n4. p99 latency < 500ms for 7 consecutive days post-cutover\n5. SRE runbook updated; zero Kafka-related pages in first 30 days\n6. Cost comparison report showing projected savings",
+  "comments": [
+    {
+      "author": "Sarah Chen (Staff Engineer)",
+      "body": "Worth noting: 3 downstream teams (Analytics, ML Platform, Customer Success dashboards) read from the current Kafka topics. We need to validate their consumers work with the Kinesis SDK shim before we flip the switch."
+    },
+    {
+      "author": "Marcus Webb (PM)",
+      "body": "Legal confirmed GDPR deletion SLA improvement from 4-6 weeks → <1 hour would unblock our EU expansion. This is blocking a BD deal worth ~$2M ARR."
+    }
+  ]
+}
